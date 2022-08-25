@@ -11,7 +11,7 @@ import scala.concurrent.ExecutionContext
 
 @Singleton
 class MainRepository @Inject()(val configProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
-  extends CarsDAO(configProvider) with SaveToFileRepositoryStatistic with RepoLogger with ConsoleLogger{}
+  extends CarsDAO(configProvider) with SaveToFileRepositoryStatistic with RepoLogger with FileLogger {}
 
 @Singleton
-class MainService() extends CarsServiceImpl with ServiceLogger with ConsoleLogger{}
+class MainService() extends CarsServiceImpl with ServiceLogger with FileLogger {}

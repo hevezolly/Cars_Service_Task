@@ -1,6 +1,7 @@
 package controllers
 
 import model.Statistics.StatisticProvider
+import model.logging.LogsCollector
 
 import javax.inject._
 import play.api.mvc._
@@ -19,7 +20,8 @@ import javax.inject.Inject
 @Singleton
 class CarsController @Inject()(val controllerComponents: ControllerComponents,
                                val carsService: CarsService,
-                               val statistics: StatisticProvider) extends BaseController {
+                               val statistics: StatisticProvider,
+                               val logs: LogsCollector) extends BaseController {
 
   /**
    * Create an Action to render an HTML page.
@@ -117,6 +119,12 @@ class CarsController @Inject()(val controllerComponents: ControllerComponents,
         "last entry" -> statistics.lastAddTime.map(_.toIsoDateTimeString()),
         "number of entries" -> statistics.numberOfEntries
       ))
+    }(ExecutionContext.global)
+  }
+
+  def provideLogs() = Action.async {request =>
+    Future {
+      Ok(logs.collect.mkString("\n"))
     }(ExecutionContext.global)
   }
 }
