@@ -2,7 +2,7 @@ package modules
 
 import model.Statistics._
 import model.logging._
-import model.repositiries.CarsDAO
+import model.repositiries.{CarsDAO, CarsRepository}
 import model.services.CarsServiceImpl
 import play.api.db.slick.DatabaseConfigProvider
 
@@ -14,4 +14,4 @@ class MainRepository @Inject()(val configProvider: DatabaseConfigProvider)(impli
   extends CarsDAO(configProvider) with SaveToFileRepositoryStatistic with RepoLogger with FileLogger {}
 
 @Singleton
-class MainService() extends CarsServiceImpl with ServiceLogger with FileLogger {}
+class MainService @Inject()(val repo: CarsRepository) extends CarsServiceImpl(repo) with ServiceLogger with FileLogger {}

@@ -15,9 +15,7 @@ import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success, Try}
 
 @Singleton
-class CarsServiceImpl() extends CarsService {
-
-  @Inject var carsRepository: CarsRepository = null
+class CarsServiceImpl @Inject() (val carsRepository: CarsRepository) extends CarsService {
 
   private def executeGraphQLQuery(query: Document, operation: Option[String], vars: Option[JsObject]): Future[JsValue] = {
     implicit val ec = ExecutionContext.global
