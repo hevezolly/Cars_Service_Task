@@ -9,12 +9,13 @@ trait FileLogger extends Logger {
 
   File(FileLogsCollector.filePath).createFile()
 
-  override def rawLog(msg: String): Unit = {
+  abstract override def rawLog(msg: String): Unit = {
     val fw = new FileWriter(FileLogsCollector.filePath, true)
     val now = DateTime.now
     try {
       fw.write(f"${now.toIsoDateTimeString()}: $msg\n")
     }
     finally fw.close()
+    super.rawLog(msg)
   }
 }
