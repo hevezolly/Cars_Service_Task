@@ -9,13 +9,13 @@ import slick.sql.SqlProfile.ColumnOption.SqlType
 import scala.language.implicitConversions
 
 class CarsTable(tag: Tag) extends Table[(Long, String, String, String, Int)](tag, "cars"){
-  def id = column[Long]("id", SqlType("SERIAL"), O.PrimaryKey, O.AutoInc)
-  def number = column[String]("number")
-  def brand = column[String]("brand")
-  def color = column[String]("color")
-  def issue_year = column[Int]("issue_year")
+  def id: Rep[Long] = column[Long]("id", SqlType("SERIAL"), O.PrimaryKey, O.AutoInc)
+  def number: Rep[String] = column[String]("number")
+  def brand: Rep[String] = column[String]("brand")
+  def color: Rep[String] = column[String]("color")
+  def issueYear: Rep[Int] = column[Int]("issue_year")
 
-  def * = (id, number, brand, color, issue_year)
+  def * = (id, number, brand, color, issueYear)
 }
 
 object CarsTable {

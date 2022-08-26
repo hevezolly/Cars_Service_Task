@@ -1,0 +1,31 @@
+version: '3'
+
+services:
+  scala:
+    build: .
+    container_name: scala
+    command: sbt run
+    environment:
+      - POSTGRESIP=pgdb:5432
+    ports:
+      - 9000:9000
+    depends_on:
+      - pgdb
+
+  pgdb:
+    image: postgres
+    restart: always
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    container_name: pgdb
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    container_name: adminer
+    depends_on:
+      - pgdb

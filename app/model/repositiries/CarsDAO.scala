@@ -36,14 +36,14 @@ extends HasDatabaseConfigProvider[JdbcProfile] with CarsRepository {
                                number: Option[Number],
                                brand: Option[String],
                                color: Option[Color],
-                               issue_year: Option[Year]): List[Car] = {
+                               issueYear: Option[Year]): List[Car] = {
 
-    val filterFunc = Array[CarsTable => Rep[Boolean]](_ => true,
+    val filterFunc = List[CarsTable => Rep[Boolean]](
       id.map(v => (c: CarsTable) => c.id === v).getOrElse(_ => true),
       number.map(v => (c: CarsTable) => c.number === v.value).getOrElse(_ => true),
       brand.map(v => (c: CarsTable) => c.brand === v).getOrElse(_ => true),
       color.map(v => (c: CarsTable) => c.color === v.value).getOrElse(_ => true),
-      issue_year.map(v => (c: CarsTable) => c.issue_year === v.value).getOrElse(_ => true),
+      issueYear.map(v => (c: CarsTable) => c.issueYear === v.value).getOrElse(_ => true),
     ).reduceLeft((f1, f2) => (c: CarsTable) => f1(c) && f2(c))
 
     val waitForRes = db.run(
