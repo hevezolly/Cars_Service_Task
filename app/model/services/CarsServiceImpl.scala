@@ -2,7 +2,7 @@ package model.services
 
 import model.Data._
 import model.logging.ConsoleLogger
-import model.repositiries.{CarsDAO, CarsRepository, RemoveCarError, TestRepo}
+import model.repositiries.{CarsDAO, CarsRepository, RemoveCarError}
 import play.api.libs.json.{JsObject, JsValue, Json}
 import sangria.ast.Document
 import sangria.execution.Executor
@@ -24,48 +24,40 @@ class CarsServiceImpl @Inject() (val carsRepository: CarsRepository) extends Car
   }
 
   override def getFieldsByQuery(query: String,
-                       ops: Option[String] = None,
-                       vars: Option[JsObject] = None): Either[QueryExecutionError, JsValue] = QueryParser.parse(query) match {
-    case Failure(error) => Left(BadQueryError(error))
-
-    case Success(queryAst) =>
-      val wait = executeGraphQLQuery(queryAst, ops, vars)
-      Await.ready(wait, Duration.Inf)
-
-      wait.value match {
-        case Some(Success(result)) => Right(result)
-        case Some(Failure(error)) => Left(ErrorWhileQueryExecution(error))
-        case None => Left(QueryWasNotFinished("something went wrong"))
-      }
+                                ops: Option[String] = None,
+                                vars: Option[JsObject] = None)
+                               (implicit ec: ExecutionContext): Future[Either[QueryExecutionError, JsValue]] =
+    QueryParser.parse(query) match {
+    case Failure(error) => Future.successful(Left(BadQueryError(error)))
+    case Success(queryAst) => executeGraphQLQuery(queryAst, ops, vars).map(Right(_))
   }
 
-  override def getAllCarsData(): Either[QueryExecutionError, JsValue] = getFieldsByQuery(f"{ cars { ${Car.allFieldsNamesString} } }")
+  override def getAllCarsData(implicit ec: ExecutionContext): Future[Either[QueryExecutionError, JsValue]] =
+    getFieldsByQuery(f"{ cars { ${Car.allFieldsNamesString} } }")
 
   override def addCar(number: Option[String],
              brand: Option[String],
              color: Option[String],
-             issue_year: Option[Int]): Option[CarAddError] = {
+             issueYear: Option[Int])(implicit ec: ExecutionContext): Future[Option[CarAddError]] = {
     if (number.isEmpty)
-      return Some(MissingNumber())
+      return Future.successful(Some(MissingNumber()))
     if (color.isEmpty)
-      return Some(MissingColor())
-    if (issue_year.isEmpty)
-      return Some(MissingYear())
+      return Future.successful(Some(MissingColor()))
+    if (issueYear.isEmpty)
+      return Future.successful(Some(MissingYear()))
 
     if (!Number.isValid(number.get))
-      return Some(IncorrectNumberFormat(Number.pattern.toString()))
+      return Future.successful(Some(IncorrectNumberFormat(Number.pattern.toString())))
     if (!Color.isValid(color.get))
-      return Some(IncorrectColorFormat(Color.pattern.toString()))
+      return Future.successful(Some(IncorrectColorFormat(Color.pattern.toString())))
 
-    carsRepository.addCar(Number(number.get), brand.getOrElse(""), Color(color.get), Year(issue_year.get)) match {
-      case None => None
-      case Some(v) => Some(ErrorWhileCarAdding(v))
-    }
+    carsRepository.addCar(Number(number.get), brand.getOrElse(""), Color(color.get), Year(issueYear.get))
+      .map(_.map(v => ErrorWhileCarAdding(v)))
   }
 
-  override def removeCarById(id: Option[Long]): Option[CarRemoveError] = id match {
-    case None => Some(MissingId())
-    case Some(id) => carsRepository.deleteCarById(id).map(v => ErrorWhileCarRemoving(v))
+  override def removeCarById(id: Option[Long])(implicit ec: ExecutionContext): Future[Option[CarRemoveError]] = id match {
+    case None => Future.successful(Some(MissingId()))
+    case Some(id) => carsRepository.deleteCarById(id).map(_.map(v => ErrorWhileCarRemoving(v)))
   }
 
 }

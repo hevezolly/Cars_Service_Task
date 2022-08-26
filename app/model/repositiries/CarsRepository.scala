@@ -4,23 +4,31 @@ import com.google.inject.ImplementedBy
 import model.Data._
 import model.logging.ConsoleLogger
 
+import scala.concurrent.{ExecutionContext, Future}
+
 trait CarsRepository {
-  def carById(id: Long): Option[Car]
+  def carById(id: Long)(implicit ec: ExecutionContext): Future[Option[Car]]
 
   def carByParameters(id: Option[Long],
                       number: Option[Number],
                       brand: Option[String],
                       color: Option[Color],
-                      issue_year: Option[Year]): List[Car] =
-    allCars.filter(c => id.forall(c.id == _) && number.forall(c.number == _) && brand.forall(c.brand == _) &&
-                        color.forall(c.color == _) && issue_year.forall(c.issue_year == _))
+                      issueYear: Option[Year])
+                     (implicit ec: ExecutionContext): Future[List[Car]] =
+    allCars.map(_.filter(c =>
+      id.forall(c.id == _) &&
+      number.forall(c.number == _) &&
+      brand.forall(c.brand == _) &&
+      color.forall(c.color == _) &&
+      issueYear.forall(c.issueYear == _)
+    ))
 
-  def allCars: List[Car]
+  def allCars(implicit ec: ExecutionContext): Future[List[Car]]
 
   def addCar(number: Number,
              brand: String,
              color: Color,
-             issue_year: Year): Option[AddCarError]
+             issueYear: Year)(implicit ec: ExecutionContext): Future[Option[AddCarError]]
 
-  def deleteCarById(id: Long): Option[RemoveCarError]
+  def deleteCarById(id: Long)(implicit ec: ExecutionContext): Future[Option[RemoveCarError]]
 }

@@ -13,7 +13,7 @@ class CarsTable(tag: Tag) extends Table[(Long, String, String, String, Int)](tag
   def number: Rep[String] = column[String]("number")
   def brand: Rep[String] = column[String]("brand")
   def color: Rep[String] = column[String]("color")
-  def issueYear: Rep[Int] = column[Int]("issue_year")
+  def issueYear: Rep[Int] = column[Int]("issueYear")
 
   def * = (id, number, brand, color, issueYear)
 }

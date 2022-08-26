@@ -5,6 +5,8 @@ import model.Data
 import model.Data.{Color, Year}
 import model.repositiries.{AddCarError, CarsRepository}
 
+import scala.concurrent.{ExecutionContext, Future}
+
 trait RuntimeRepositoryStatistic extends CarsRepository with StatisticProvider {
 
   protected var lastEntry: Option[DateTime] = None
@@ -17,16 +19,17 @@ trait RuntimeRepositoryStatistic extends CarsRepository with StatisticProvider {
     lastEntry = Some(now)
   }
 
-  abstract override def addCar(number: Data.Number, brand: String, color: Color, issue_year: Year): Option[AddCarError] = {
-    val res = super.addCar(number, brand, color, issue_year)
-    if (res.isEmpty)
-      update()
-    res
+  abstract override def addCar(number: Data.Number, brand: String, color: Color, issueYear: Year)
+                              (implicit ec: ExecutionContext): Future[Option[AddCarError]] = {
+    super.addCar(number, brand, color, issueYear).map {
+      case v @ Some(_) => v
+      case None => update(); None
+    }
   }
 
-  override def numberOfEntries: Long = allCars.length
+  override def numberOfEntries(implicit ec: ExecutionContext): Future[Long] = allCars.map(_.length)
 
-  override def lastAddTime: Option[DateTime] = lastEntry
+  override def lastAddTime(implicit ec: ExecutionContext): Future[Option[DateTime]] = Future.successful(lastEntry)
 
-  override def firstAddTime: Option[DateTime] = firstEntry
+  override def firstAddTime(implicit ec: ExecutionContext): Future[Option[DateTime]] = Future.successful(firstEntry)
 }

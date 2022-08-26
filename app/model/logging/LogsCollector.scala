@@ -1,5 +1,7 @@
 package model.logging
 
+import scala.concurrent.{ExecutionContext, Future}
+
 trait LogsCollector {
-  def collect: Seq[String]
+  def collect(implicit ec: ExecutionContext): Future[Seq[String]]
 }

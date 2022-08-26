@@ -9,10 +9,6 @@ sealed trait CarRemoveError extends Any with ServiceError
 
 
 case class BadQueryError(throwable: Throwable) extends AnyVal with QueryExecutionError
-case class ErrorWhileQueryExecution(throwable: Throwable) extends AnyVal with QueryExecutionError
-case class QueryWasNotFinished(msg: String) extends AnyVal with QueryExecutionError
-
-case class InternalError(throwable: Throwable) extends AnyVal with ServiceError
 
 case class IncorrectNumberFormat(requiredFormat: String) extends AnyVal with CarAddError
 case class IncorrectColorFormat(requiredFormat: String) extends AnyVal with CarAddError

@@ -38,8 +38,8 @@ object Year {
 }
 
 
-case class Car(val id: Long, val number: Number, val brand: String, val color: Color, val issue_year: Year)
+case class Car(val id: Long, val number: Number, val brand: String, val color: Color, val issueYear: Year)
 
 object Car {
-  def allFieldsNamesString = "id number brand color issue_year"
+  def allFieldsNamesString = "id number brand color issueYear"
 }

@@ -23,24 +23,16 @@ class CarsController @Inject()(val controllerComponents: ControllerComponents,
                                val statistics: StatisticProvider,
                                val logs: LogsCollector) extends BaseController {
 
-  /**
-   * Create an Action to render an HTML page.
-   *
-   * The configuration in the `routes` file means that this method
-   * will be called when the application receives a `GET` request with
-   * a path of `/`.
-   */
+  implicit val ec: ExecutionContext = ExecutionContext.global
 
   def index() = Action.async { implicit request: Request[AnyContent] =>
-    Future {
-      processQueryResult(carsService.getAllCarsData())
-    }(ExecutionContext.global)
+      carsService.getAllCarsData.map(processQueryResult)
   }
 
   def listCarsByRequest = Action.async { anyRequest =>
-    Future {
+    {
         anyRequest.body.asJson.flatMap(v => (v \ "query").asOpt[String]) match {
-        case None => processQueryResult(carsService.getAllCarsData())
+        case None => carsService.getAllCarsData.map(processQueryResult)
         case Some(query) =>
 
         val body = anyRequest.body.asJson.get
@@ -52,79 +44,74 @@ class CarsController @Inject()(val controllerComponents: ControllerComponents,
           case _ => None
         }
 
-        processQueryResult(carsService.getFieldsByQuery(query, operation, variables))
+        carsService.getFieldsByQuery(query, operation, variables).map(processQueryResult)
 
       }
-    }(ExecutionContext.global)
+    }
   }
 
   def processQueryResult(result: Either[QueryExecutionError, JsValue]) = result match {
     case Right(result) => Ok(result)
     case Left(BadQueryError(e)) => BadRequest(f"incorrect query: ${e.getMessage}")
-    case Left(ErrorWhileQueryExecution(e)) => InternalServerError(f"internal error: ${e.getMessage}")
-    case _ => InternalServerError("something went wrong")
   }
 
   private def parseVariables(variables: String) =
     if (variables.trim == "" || variables.trim == "null") Json.obj() else Json.parse(variables).as[JsObject]
 
 
-  def add_car() = Action.async { anyRequest =>
-    Future{
-      if (anyRequest.body.asJson.isEmpty)
-        BadRequest("json expected")
-      else {
+  def add_car() = Action.async { anyRequest => {
+      if (anyRequest.body.asJson.isEmpty) {
+        Future.successful(BadRequest("json expected"))
+      }
+      else{
         val body = anyRequest.body.asJson.get
         val number = (body \ "number").asOpt[String]
         val brand = (body \ "brand").asOpt[String]
         val color = (body \ "color").asOpt[String]
-        val issue_year = (body \ "issue_year").asOpt[Int]
+        val issueYear = (body \ "issueYear").asOpt[Int]
 
-        carsService.addCar(number, brand, color, issue_year) match {
+        carsService.addCar(number, brand, color, issueYear).map{
           case None => Ok("success")
-          case Some(MissingYear(_)) => BadRequest("field \"issue_year\" is missing")
+          case Some(MissingYear(_)) => BadRequest("field \"issueYear\" is missing")
           case Some(MissingNumber(_)) => BadRequest("field \"number\" is missing")
           case Some(MissingColor(_)) => BadRequest("field \"color\" is missing")
           case Some(IncorrectNumberFormat(f)) => BadRequest(f"incorrect number format. should be $f")
           case Some(IncorrectColorFormat(f)) => BadRequest(f"incorrect color format. should be $f")
           case Some(ErrorWhileCarAdding(CarAlreadyExists(_))) => BadRequest(f"car with such parameters is already exists")
-          case Some(ErrorWhileCarAdding(ExceptionThrown(e))) => InternalServerError(e.getMessage)
-          case Some(ErrorWhileCarAdding(model.repositiries.InternalError(_))) => InternalServerError("something went wrong")
         }
       }
-    }(ExecutionContext.global)
+    }
   }
 
-  def del_car() = Action.async { request =>
-    Future{
+  def del_car() = Action.async { request =>{
       val id = request match {
         case _ if request.body.asText.isDefined => request.body.asText.get.toLongOption
         case _ if request.body.asJson.isDefined => (request.body.asJson.get \ "id").asOpt[Long]
         case _ => None
       }
-      carsService.removeCarById(id) match {
+      carsService.removeCarById(id).map{
         case None => Ok("success")
         case Some(MissingId(_)) => BadRequest("id should be provided as json with \"id\" field or as plane text")
         case Some(ErrorWhileCarRemoving(CarDoesNotExists(_))) => BadRequest("no car with such id found")
-        case Some(ErrorWhileCarRemoving(ExceptionThrown(e))) => InternalServerError(e.getMessage)
-        case Some(ErrorWhileCarRemoving(model.repositiries.InternalError(_))) => InternalServerError("something went wrong")
       }
-    }(ExecutionContext.global)
+    }
   }
 
-  def statistic() = Action.async { request =>
-    Future{
-      Ok(Json.obj(
-        "first entry" -> statistics.firstAddTime.map(_.toIsoDateTimeString()),
-        "last entry" -> statistics.lastAddTime.map(_.toIsoDateTimeString()),
-        "number of entries" -> statistics.numberOfEntries
-      ))
-    }(ExecutionContext.global)
+  def statistic() = Action.async { _ =>{
+    for {firstAdd <- statistics.firstAddTime.map(_.map(_.toIsoDateTimeString()))
+         lastAdd <- statistics.lastAddTime.map(_.map(_.toIsoDateTimeString()))
+         numOfEntries <- statistics.numberOfEntries} yield Ok(
+        Json.obj(
+          "first entry" -> firstAdd,
+          "last entry" -> lastAdd,
+          "number of entries" -> numOfEntries
+        )
+      )
+    }
   }
 
-  def provideLogs() = Action.async {request =>
-    Future {
-      Ok(logs.collect.mkString("\n"))
-    }(ExecutionContext.global)
+  def provideLogs() = Action.async {_ => {
+      logs.collect.map(v => Ok(v.mkString("\n")))
+    }
   }
 }
